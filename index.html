@@ -16,7 +16,7 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 const scene=new THREE.Scene();scene.background=new THREE.Color(0xa8b5ae);scene.fog=new THREE.FogExp2(0xa8b5ae,.009);
 const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.1,350);
-const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;document.body.appendChild(renderer.domElement);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;document.body.appendChild(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xe7f5ff,0x514338,2.25));const sun=new THREE.DirectionalLight(0xffdfb2,3.4);sun.position.set(-35,60,25);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);scene.add(sun);
 const mat=(c,m=0,r=.8,e=0)=>new THREE.MeshStandardMaterial({color:c,metalness:m,roughness:r,emissive:e});
 const concrete=mat(0x555b57),metal=mat(0x202a2c,.7,.45),rust=mat(0x87482f,.45),glass=mat(0x183c40,.5,.25,0x092323),cyan=mat(0x53dfd4,.5,.3,0x126a63),cloth=mat(0x343e36),red=mat(0xa53d2e,.4,.5,0x320900),sand=mat(0x827967);
@@ -112,13 +112,18 @@ function spherePart(parent,material,x,y,z,sx,sy,sz){let m=new THREE.Mesh(new THR
 // Rostros humanos de estilo cinematográfico: piel, ojos, cejas, nariz, labios,
 // orejas, cabello/barba y pequeñas marcas para que cada combatiente sea único.
 function addHumanFace(parent, skinMaterial, hairMaterial, detailMaterial, variant=0){
- const face=spherePart(parent,skinMaterial,0,-.035,.155,.166,.205,.105);
+ const face=spherePart(parent,skinMaterial,0,-.035,.155,.158,.198,.108);
+ // Mandíbula, pómulos y puente nasal dan una silueta menos esférica.
+ spherePart(parent,skinMaterial,0,-.112,.145,.125,.095,.105);
+ spherePart(parent,skinMaterial,-.105,-.065,.207,.068,.075,.055);
+ spherePart(parent,skinMaterial,.105,-.065,.207,.068,.075,.055);
  spherePart(parent,skinMaterial,-.177,-.025,.105,.045,.075,.055);
  spherePart(parent,skinMaterial,.177,-.025,.105,.045,.075,.055);
  const eye=mat(0x171817,.12,.24),white=mat(0xc7c4b8,.05,.35),brow=hairMaterial;
  for(const q of [-1,1]){
-  spherePart(parent,white,q*.071,.018,.247,.044,.027,.018);
-  spherePart(parent,eye,q*.071,.018,.264,.018,.022,.012);
+  spherePart(parent,skinMaterial,q*.071,.018,.239,.052,.036,.025);
+  spherePart(parent,white,q*.071,.018,.255,.039,.023,.018);
+  spherePart(parent,eye,q*.071,.018,.27,.018,.021,.012);
   spherePart(parent,mat(0x0b0b0a,.05,.2),q*.071,.018,.274,.008,.012,.006);
   cube(parent,brow,q*.071,.071,.239,.095,.026,.035,0,0,q*-.13);
  }
@@ -208,24 +213,39 @@ document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockEl
 document.addEventListener('mousemove',e=>{if(!locked)return;yaw-=e.movementX*.0025;pitch=THREE.MathUtils.clamp(pitch-e.movementY*.0022,-.62,.4)});
 document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Escape'&&playing){paused=true;document.exitPointerLock?.();msg('PAUSA — PULSA INICIAR PARA CONTINUAR')}if(e.code==='KeyR')reload()});document.addEventListener('keyup',e=>keys[e.code]=false);
 function reload(){if(reloading||ammo===24)return;reloading=true;ui();setTimeout(()=>{ammo=24;reloading=false;ui()},1050)}
-const shotRay=new THREE.Raycaster();const tracers=[];
-function fire(){let now=performance.now();if(now-lastFire<190||ammo<1||reloading)return;lastFire=now;ammo--;ui();shotRay.setFromCamera(new THREE.Vector2(0,0),camera);
-let targets=[];for(const enemy of enemies)targets.push(...enemy.children);let hits=shotRay.intersectObjects(targets,true),end=shotRay.ray.origin.clone().addScaledVector(shotRay.ray.direction,85),victim=null;
-if(hits.length){end.copy(hits[0].point);let root=hits[0].object;while(root.parent&&root.parent!==scene)root=root.parent;if(enemies.includes(root))victim=root}
-let start=new THREE.Vector3();rifle.getWorldPosition(start);start.add(new THREE.Vector3(0,.02,.5).applyQuaternion(rifle.getWorldQuaternion(new THREE.Quaternion())));
-let direction=end.clone().sub(start).normalize();
-const beamGeo=new THREE.BufferGeometry().setFromPoints([start.clone(),end.clone()]);const beamMat=new THREE.LineBasicMaterial({color:0xffd28a,transparent:true,opacity:1});const beam=new THREE.Line(beamGeo,beamMat);scene.add(beam);tracers.push({o:beam,life:.12,max:.12});
-// Proyectil 3D reconocible: vaina metálica, punta incandescente y núcleo luminoso.
-const orb=new THREE.Group();orb.position.copy(start);orb.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);
-const casing=new THREE.Mesh(new THREE.CylinderGeometry(.055,.055,.42,12),new THREE.MeshStandardMaterial({color:0xb8a06d,metalness:.88,roughness:.24,emissive:0x241600}));
-casing.castShadow=true;orb.add(casing);
-const nose=new THREE.Mesh(new THREE.ConeGeometry(.055,.19,12),new THREE.MeshStandardMaterial({color:0xffb34f,metalness:.45,roughness:.2,emissive:0x9b3c08,emissiveIntensity:1.8}));
-nose.position.y=.305;orb.add(nose);
-const core=new THREE.Mesh(new THREE.CylinderGeometry(.027,.027,.48,8),new THREE.MeshBasicMaterial({color:0xffe3a0}));
-core.position.y=.02;orb.add(core);
-const projectileGlow=new THREE.PointLight(0xffa64a,1.4,2.8);projectileGlow.position.y=.1;orb.add(projectileGlow);
-scene.add(orb);
-let distance=start.distanceTo(end);bullets.push({o:orb,d:direction,life:distance/180+.04,travel:0,maxDistance:distance,victim,damage:38,speed:180});muzzleFlash.intensity=5;setTimeout(()=>muzzleFlash.intensity=0,90);if(ammo===0)msg('SIN MUNICIÓN — PULSA R')}
+const shotRay=new THREE.Raycaster();shotRay.far=85;const tracers=[];
+// Geometrías y materiales compartidos: disparar no crea ni destruye recursos GPU.
+const bulletCasingGeo=new THREE.CylinderGeometry(.055,.055,.42,10);
+const bulletNoseGeo=new THREE.ConeGeometry(.055,.19,10);
+const bulletCoreGeo=new THREE.CylinderGeometry(.027,.027,.48,8);
+const bulletCasingMat=new THREE.MeshStandardMaterial({color:0xb8a06d,metalness:.82,roughness:.32,emissive:0x241600});
+const bulletNoseMat=new THREE.MeshStandardMaterial({color:0xffb34f,metalness:.35,roughness:.3,emissive:0x9b3c08,emissiveIntensity:1.2});
+const bulletCoreMat=new THREE.MeshBasicMaterial({color:0xffe3a0});
+function makeBulletVisual(){
+ const orb=new THREE.Group();
+ const casing=new THREE.Mesh(bulletCasingGeo,bulletCasingMat);orb.add(casing);
+ const nose=new THREE.Mesh(bulletNoseGeo,bulletNoseMat);nose.position.y=.305;orb.add(nose);
+ const core=new THREE.Mesh(bulletCoreGeo,bulletCoreMat);core.position.y=.02;orb.add(core);
+ return orb;
+}
+function fire(){
+ let now=performance.now();if(now-lastFire<190||ammo<1||reloading)return;lastFire=now;ammo--;ui();
+ shotRay.setFromCamera(new THREE.Vector2(0,0),camera);
+ // Intersectar cada enemigo una sola vez evita recorrer repetidamente sus subárboles.
+ const hits=shotRay.intersectObjects(enemies,true);
+ const end=shotRay.ray.origin.clone().addScaledVector(shotRay.ray.direction,85);let victim=null;
+ if(hits.length){end.copy(hits[0].point);let root=hits[0].object;while(root.parent&&root.parent!==scene)root=root.parent;if(enemies.includes(root))victim=root}
+ const start=new THREE.Vector3();rifle.getWorldPosition(start);start.add(new THREE.Vector3(0,.02,.5).applyQuaternion(rifle.getWorldQuaternion(new THREE.Quaternion())));
+ const direction=end.clone().sub(start).normalize();
+ const beamGeo=new THREE.BufferGeometry().setFromPoints([start.clone(),end.clone()]);
+ const beamMat=new THREE.LineBasicMaterial({color:0xffd9a0,transparent:true,opacity:.9});
+ const beam=new THREE.Line(beamGeo,beamMat);scene.add(beam);tracers.push({o:beam,life:.10,max:.10});
+ const orb=makeBulletVisual();orb.position.copy(start);orb.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);scene.add(orb);
+ const distance=start.distanceTo(end);
+ bullets.push({o:orb,d:direction,life:distance/180+.04,travel:0,maxDistance:distance,victim,damage:38,speed:180});
+ muzzleFlash.intensity=5;
+ if(ammo===0)msg('SIN MUNICIÓN — PULSA R');
+}
 
 function makeEnemy(type){
  const g=new THREE.Group();scene.add(g);
@@ -315,11 +335,11 @@ function updateEnemies(dt){
   e.lookAt(player.position.x,0,player.position.z);
  }
 }
-function projectiles(dt){for(let i=tracers.length-1;i>=0;i--){const t=tracers[i];t.life-=dt;t.o.material.opacity=Math.max(0,t.life/t.max);if(t.life<=0){scene.remove(t.o);t.o.geometry.dispose();t.o.material.dispose();tracers.splice(i,1)}}for(let i=bullets.length-1;i>=0;i--){let b=bullets[i],step=b.speed*dt;b.o.position.addScaledVector(b.d,step);b.travel+=step;b.life-=dt;if(b.travel>=b.maxDistance||b.life<=0){if(b.victim&&enemies.includes(b.victim)){b.victim.userData.hp-=b.damage;if(b.victim.userData.hp<=0){scene.remove(b.victim);enemies.splice(enemies.indexOf(b.victim),1);kills++;ui()}}scene.remove(b.o);b.o.geometry.dispose();b.o.material.dispose();bullets.splice(i,1)}}for(let i=enemyBullets.length-1;i>=0;i--){let b=enemyBullets[i];b.o.position.addScaledVector(b.d,19*dt);b.life-=dt;if(b.o.position.distanceTo(player.position.clone().add(new THREE.Vector3(0,1,0)))<.8){hurt(b.damage||9);scene.remove(b.o);enemyBullets.splice(i,1)}else if(b.life<=0){scene.remove(b.o);enemyBullets.splice(i,1)}}}
+function projectiles(dt){for(let i=tracers.length-1;i>=0;i--){const t=tracers[i];t.life-=dt;t.o.material.opacity=Math.max(0,t.life/t.max);if(t.life<=0){scene.remove(t.o);t.o.geometry.dispose();t.o.material.dispose();tracers.splice(i,1)}}for(let i=bullets.length-1;i>=0;i--){let b=bullets[i],step=b.speed*dt;b.o.position.addScaledVector(b.d,step);b.travel+=step;b.life-=dt;if(b.travel>=b.maxDistance||b.life<=0){if(b.victim&&enemies.includes(b.victim)){b.victim.userData.hp-=b.damage;if(b.victim.userData.hp<=0){scene.remove(b.victim);enemies.splice(enemies.indexOf(b.victim),1);kills++;ui()}}scene.remove(b.o);bullets.splice(i,1)}}for(let i=enemyBullets.length-1;i>=0;i--){let b=enemyBullets[i];b.o.position.addScaledVector(b.d,19*dt);b.life-=dt;if(b.o.position.distanceTo(player.position.clone().add(new THREE.Vector3(0,1,0)))<.8){hurt(b.damage||9);scene.remove(b.o);enemyBullets.splice(i,1)}else if(b.life<=0){scene.remove(b.o);enemyBullets.splice(i,1)}}}
 const clock=new THREE.Clock(),target=new THREE.Vector3(),desired=new THREE.Vector3();function frame(){requestAnimationFrame(frame);let dt=Math.min(clock.getDelta(),.04);if(playing&&!paused){time+=dt;move(dt);updateEnemies(dt);projectiles(dt);updateLoot(dt);if(!enemies.length){wave++;hp=Math.min(100,hp+12);spawn();ui()}}target.set(player.position.x,1.55,player.position.z);let h=6.5*Math.cos(pitch);desired.set(target.x+Math.sin(yaw)*h,target.y+Math.sin(pitch)*6.5+1.05,target.z+Math.cos(yaw)*h);camera.position.lerp(desired,1-Math.pow(.0008,dt));camera.lookAt(target);renderer.render(scene,camera)}
 function resetRun(){
  for(const e of enemies)scene.remove(e);enemies.length=0;
- for(const b of bullets){scene.remove(b.o);b.o.geometry.dispose();b.o.material.dispose()}bullets.length=0;
+ for(const b of bullets)scene.remove(b.o);bullets.length=0;
  for(const b of enemyBullets)scene.remove(b.o);enemyBullets.length=0;
  for(const t of tracers){scene.remove(t.o);t.o.geometry.dispose();t.o.material.dispose()}tracers.length=0;
  player.position.set(0,0,0);player.rotation.set(0,0,0);rig.position.set(0,0,0);
