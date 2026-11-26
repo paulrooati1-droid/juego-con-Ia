@@ -356,4 +356,76 @@ function resetRun(){
  document.getElementById('start').textContent='INICIAR SUPERVIVENCIA';ui();spawn();
 }
 document.getElementById('start').onclick=()=>{document.getElementById('screen').style.display='none';if(gameOver){resetRun();playing=true}else if(!playing){playing=true;spawn()}paused=false;};addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});ui();frame();
+
+/* EVOLVER SHOT FX v1 */
+{
+  const casingGeo = new THREE.CylinderGeometry(0.018, 0.022, 0.105, 8);
+  const casingMat = new THREE.MeshStandardMaterial({color:0xc98a3b, metalness:0.68, roughness:0.34});
+  const flashMat = new THREE.MeshBasicMaterial({color:0xffc56a, transparent:true, opacity:0.98, blending:THREE.AdditiveBlending, depthWrite:false, toneMapped:false});
+  const flashMesh = new THREE.Mesh(new THREE.SphereGeometry(0.085, 9, 7), flashMat);
+  flashMesh.position.set(0, 0.015, 1.02);
+  flashMesh.scale.set(0.85, 0.85, 3.8);
+  flashMesh.visible = false;
+  rifle.add(flashMesh);
+  const casings = [];
+  const priorFire = fire;
+  let lastVisualShot = 0;
+  fire = function(...args) {
+    const result = priorFire.apply(this, args);
+    const now = performance.now();
+    if (playing && !paused && now-lastVisualShot>115) {
+      lastVisualShot = now;
+      fireKick = Math.max(fireKick || 0, 1.45);
+      flashMesh.visible = true;
+      flashMesh.scale.set(0.8+Math.random()*0.45, 0.8+Math.random()*0.45, 3.4+Math.random()*1.8);
+      flashMat.opacity = 1;
+      if (muzzleFlash) muzzleFlash.intensity = 28;
+      renderer.domElement.style.filter = "brightness(1.35) contrast(1.08)";
+      setTimeout(() => {
+        flashMesh.visible = false;
+        if (muzzleFlash) muzzleFlash.intensity = 0;
+        renderer.domElement.style.filter = "";
+      }, 85);
+      const q = rifle.getWorldQuaternion(new THREE.Quaternion());
+      const shell = new THREE.Mesh(casingGeo, casingMat);
+      shell.position.copy(rifle.localToWorld(new THREE.Vector3(-0.14, 0.025, 0.08)));
+      shell.quaternion.copy(q);
+      shell.rotation.z += Math.PI/2;
+      scene.add(shell);
+      casings.push({
+        mesh:shell,
+        velocity:new THREE.Vector3(-2.5, 2.0, -0.15).applyQuaternion(q),
+        life:1.15,
+        spin:13+Math.random()*8
+      });
+    }
+    return result;
+  };
+  let prevTime=0;
+  function animateCasings(t) {
+    const dt=Math.min(0.035, prevTime ? (t-prevTime)/1000 : 0.016);
+    prevTime=t;
+    for(let i=casings.length-1;i>=0;i--) {
+      const s=casings[i];
+      s.life-=dt;
+      s.velocity.y-=9.8*dt;
+      s.mesh.position.addScaledVector(s.velocity,dt);
+      s.mesh.rotation.x+=s.spin*dt;
+      s.mesh.rotation.z+=s.spin*0.7*dt;
+      if(s.mesh.position.y<0.06) {
+        s.mesh.position.y=0.06;
+        s.velocity.y=Math.abs(s.velocity.y)*0.22;
+        s.velocity.x*=0.58;
+        s.velocity.z*=0.58;
+      }
+      if(s.life<=0) {
+        scene.remove(s.mesh);
+        casings.splice(i,1);
+      }
+    }
+    requestAnimationFrame(animateCasings);
+  }
+  requestAnimationFrame(animateCasings);
+}
+
 </script></body></html>
