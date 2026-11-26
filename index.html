@@ -130,9 +130,11 @@ function makeEnemy(type){
  if(type==='stalker'){weapon.visible=false;for(let q of [-1,1]){let claw=cube(torso,armor,q*.48,-.42,.27,.12,.48,.12,0,0,q*.22)}}
  if(type==='brute'){weapon.visible=false;cube(torso,armor,0,-.22,.36,.8,.4,.35)}
  if(type==='imitator'){cube(torso,visor,0,.26,.215,.62,.055,.035);cube(head,visor,0,.27,-.01,.25,.05,.35)}
- let angle=Math.random()*Math.PI*2,r=24+Math.random()*22;
- g.position.set(player.position.x+Math.sin(angle)*r,0,player.position.z+Math.cos(angle)*r);
- g.userData={type,hp:type==='brute'?170:type==='stalker'?48:type==='sniper'?55:type==='imitator'?85:65,speed:type==='stalker'?4.8:type==='brute'?1.35:type==='sniper'?1.8:type==='imitator'?2.8:2.2,cd:1,torso,arms,legs,weapon,phase:Math.random()*6.28,walk:0};
+ let sx=player.position.x,sz=player.position.z,placed=false;
+ for(let attempt=0;attempt<28;attempt++){let angle=Math.random()*Math.PI*2,r=24+Math.random()*22;sx=THREE.MathUtils.clamp(player.position.x+Math.sin(angle)*r,-55,55);sz=THREE.MathUtils.clamp(player.position.z+Math.cos(angle)*r,-55,55);if(!blockedAt(sx,sz,type==='brute'?.72:.48)){placed=true;break}}
+ if(!placed){sx=THREE.MathUtils.clamp(player.position.x+18,-55,55);sz=THREE.MathUtils.clamp(player.position.z+18,-55,55)}
+ g.position.set(sx,0,sz);
+ g.userData={type,hp:type==='brute'?170:type==='stalker'?48:type==='sniper'?55:type==='imitator'?85:65,speed:type==='stalker'?4.8:type==='brute'?1.35:type==='sniper'?1.8:type==='imitator'?2.8:2.2,cd:1,torso,arms,legs,weapon,phase:Math.random()*6.28,walk:0,attack:0,attackDuration:.35};
  enemies.push(g);
 }
 
@@ -149,17 +151,28 @@ function move(dt){
 
 function updateEnemies(dt){
  for(let i=enemies.length-1;i>=0;i--){
-  const e=enemies[i],u=e.userData,delta=player.position.clone().sub(e.position),dist=delta.length();delta.y=0;delta.normalize();u.cd-=dt;
+  const e=enemies[i],u=e.userData,delta=player.position.clone().sub(e.position),dist=delta.length();delta.y=0;delta.normalize();u.cd-=dt;u.attack=Math.max(0,u.attack-dt);
   let dir=delta.clone();if(u.type==='imitator'){let flank=new THREE.Vector3(delta.z,0,-delta.x);dir.lerp(flank,.55).normalize()}
   if(u.type==='sniper'&&dist<16)dir.multiplyScalar(-1);
-  if(dist>2.6){const step=u.speed*dt;slideMove(e.position,dir.x*step,dir.z*step,u.type==='brute'?.68:.4);u.walk+=dt*u.speed;u.legs[0].rotation.x=Math.sin(u.walk*5+u.phase)*.62;u.legs[1].rotation.x=-Math.sin(u.walk*5+u.phase)*.62;u.arms[0].rotation.x=-Math.sin(u.walk*5+u.phase)*.32;u.arms[1].rotation.x=Math.sin(u.walk*5+u.phase)*.32}
-  else if(u.cd<=0){hurt(u.type==='brute'?15:8);u.cd=1.15}
+  const meleeRange=u.type==='brute'?3.4:u.type==='stalker'?3.1:2.6;
+  if(dist>meleeRange){const step=u.speed*dt;slideMove(e.position,dir.x*step,dir.z*step,u.type==='brute'?.68:.4);u.walk+=dt*u.speed;u.legs[0].rotation.x=Math.sin(u.walk*5+u.phase)*.62;u.legs[1].rotation.x=-Math.sin(u.walk*5+u.phase)*.62;u.arms[0].rotation.x=-Math.sin(u.walk*5+u.phase)*.32;u.arms[1].rotation.x=Math.sin(u.walk*5+u.phase)*.32}
+  else if(u.cd<=0){hurt(u.type==='brute'?18:u.type==='stalker'?11:u.type==='imitator'?10:8);u.cd=u.type==='stalker'?.9:u.type==='brute'?1.55:1.15;u.attack=u.attackDuration}
+  // Raiders disparan ráfagas; francotiradores hacen tiros lentos y precisos.
+  if((u.type==='raider'&&dist<25&&dist>4||u.type==='sniper'&&dist<38&&dist>7)&&u.cd<=0){
+   const muzzle=new THREE.Vector3();u.weapon.getWorldPosition(muzzle);muzzle.add(new THREE.Vector3(0,0,.5).applyQuaternion(u.weapon.getWorldQuaternion(new THREE.Quaternion())));
+   const bolt=new THREE.Mesh(new THREE.SphereGeometry(u.type==='sniper'?.13:.09,10,8),new THREE.MeshBasicMaterial({color:u.type==='sniper'?0xffc36b:0xff654a}));
+   bolt.position.copy(muzzle);scene.add(bolt);enemyBullets.push({o:bolt,d:player.position.clone().add(new THREE.Vector3(0,1,0)).sub(muzzle).normalize(),life:3,damage:u.type==='sniper'?12:7});
+   u.cd=u.type==='sniper'?2.5:1.45;u.attack=.22;
+  }
+  // Golpe visual propio: el bruto levanta los brazos y el acechador se lanza.
+  const swing=u.attack>0?Math.sin((u.attack/u.attackDuration)*Math.PI):0;
+  u.torso.rotation.x=THREE.MathUtils.damp(u.torso.rotation.x,-swing*(u.type==='brute'?.48:.22),12,dt);
+  u.arms[0].rotation.x+=swing*(u.type==='brute'?-.8:-.42)*dt*8;
+  u.arms[1].rotation.x+=swing*(u.type==='brute'?-.8:-.42)*dt*8;
   e.lookAt(player.position.x,0,player.position.z);
-  if(u.type==='sniper'&&u.cd<=0&&dist<32){let b=new THREE.Mesh(new THREE.SphereGeometry(.12,10,8),new THREE.MeshBasicMaterial({color:0xff9b4a}));b.position.copy(e.position).add(new THREE.Vector3(0,1.7,0));scene.add(b);enemyBullets.push({o:b,d:player.position.clone().add(new THREE.Vector3(0,1,0)).sub(b.position).normalize(),life:3});u.cd=2.3}
  }
 }
-
-function projectiles(dt){for(let i=bullets.length-1;i>=0;i--){let b=bullets[i],step=b.speed*dt;b.o.position.addScaledVector(b.d,step);b.travel+=step;b.life-=dt;if(b.travel>=b.maxDistance||b.life<=0){if(b.victim&&enemies.includes(b.victim)){b.victim.userData.hp-=b.damage;if(b.victim.userData.hp<=0){scene.remove(b.victim);enemies.splice(enemies.indexOf(b.victim),1);kills++;ui()}}scene.remove(b.o);b.o.geometry.dispose();b.o.material.dispose();bullets.splice(i,1)}}for(let i=enemyBullets.length-1;i>=0;i--){let b=enemyBullets[i];b.o.position.addScaledVector(b.d,19*dt);b.life-=dt;if(b.o.position.distanceTo(player.position.clone().add(new THREE.Vector3(0,1,0)))<.8){hurt(9);scene.remove(b.o);enemyBullets.splice(i,1)}else if(b.life<=0){scene.remove(b.o);enemyBullets.splice(i,1)}}}
+function projectiles(dt){for(let i=bullets.length-1;i>=0;i--){let b=bullets[i],step=b.speed*dt;b.o.position.addScaledVector(b.d,step);b.travel+=step;b.life-=dt;if(b.travel>=b.maxDistance||b.life<=0){if(b.victim&&enemies.includes(b.victim)){b.victim.userData.hp-=b.damage;if(b.victim.userData.hp<=0){scene.remove(b.victim);enemies.splice(enemies.indexOf(b.victim),1);kills++;ui()}}scene.remove(b.o);b.o.geometry.dispose();b.o.material.dispose();bullets.splice(i,1)}}for(let i=enemyBullets.length-1;i>=0;i--){let b=enemyBullets[i];b.o.position.addScaledVector(b.d,19*dt);b.life-=dt;if(b.o.position.distanceTo(player.position.clone().add(new THREE.Vector3(0,1,0)))<.8){hurt(b.damage||9);scene.remove(b.o);enemyBullets.splice(i,1)}else if(b.life<=0){scene.remove(b.o);enemyBullets.splice(i,1)}}}
 const clock=new THREE.Clock(),target=new THREE.Vector3(),desired=new THREE.Vector3();function frame(){requestAnimationFrame(frame);let dt=Math.min(clock.getDelta(),.04);if(playing&&!paused){time+=dt;move(dt);updateEnemies(dt);projectiles(dt);updateLoot(dt);if(!enemies.length){wave++;hp=Math.min(100,hp+12);spawn();ui()}}target.set(player.position.x,1.55,player.position.z);let h=6.5*Math.cos(pitch);desired.set(target.x+Math.sin(yaw)*h,target.y+Math.sin(pitch)*6.5+1.05,target.z+Math.cos(yaw)*h);camera.position.lerp(desired,1-Math.pow(.0008,dt));camera.lookAt(target);renderer.render(scene,camera)}
 document.getElementById('start').onclick=()=>{document.getElementById('screen').style.display='none';if(!playing){playing=true;spawn()}paused=false;capture()};addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});ui();frame();
 </script></body></html>
