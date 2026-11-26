@@ -207,8 +207,11 @@ function capture(){if(playing&&!paused)renderer.domElement.requestPointerLock?.(
 renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
 // Cámara tipo Roblox: el botón derecho mantiene la cámara en modo giro.
 // Al soltarlo se libera el cursor, pero yaw/pitch se conservan.
-document.addEventListener('mousedown',e=>{if(e.button===2&&playing&&!paused)capture();if(e.button===0&&playing&&!paused)fire()});
-document.addEventListener('mouseup',e=>{if(e.button===2&&document.pointerLockElement===renderer.domElement)document.exitPointerLock?.()});
+renderer.domElement.addEventListener('pointerdown',e=>{
+ if(e.button===0&&playing&&!paused){e.preventDefault();fire()}
+ if(e.button===2&&playing&&!paused){e.preventDefault();capture()}
+});
+document.addEventListener('pointerup',e=>{if(e.button===2&&document.pointerLockElement===renderer.domElement)document.exitPointerLock?.()});
 document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===renderer.domElement});
 document.addEventListener('mousemove',e=>{if(!locked)return;yaw-=e.movementX*.0025;pitch=THREE.MathUtils.clamp(pitch-e.movementY*.0022,-.62,.4)});
 document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Escape'&&playing){paused=true;document.exitPointerLock?.();msg('PAUSA — PULSA INICIAR PARA CONTINUAR')}if(e.code==='KeyR')reload()});document.addEventListener('keyup',e=>keys[e.code]=false);
@@ -239,11 +242,11 @@ function fire(){
  const direction=end.clone().sub(start).normalize();
  const beamGeo=new THREE.BufferGeometry().setFromPoints([start.clone(),end.clone()]);
  const beamMat=new THREE.LineBasicMaterial({color:0xffd9a0,transparent:true,opacity:.9});
- const beam=new THREE.Line(beamGeo,beamMat);scene.add(beam);tracers.push({o:beam,life:.10,max:.10});
- const orb=makeBulletVisual();orb.position.copy(start);orb.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);scene.add(orb);
+ const beam=new THREE.Line(beamGeo,beamMat);scene.add(beam);tracers.push({o:beam,life:.18,max:.18});
+ const orb=makeBulletVisual();orb.position.copy(start);orb.scale.setScalar(2.35);orb.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);scene.add(orb);
  const distance=start.distanceTo(end);
  bullets.push({o:orb,d:direction,life:distance/180+.04,travel:0,maxDistance:distance,victim,damage:38,speed:180});
- muzzleFlash.intensity=5;setTimeout(()=>{muzzleFlash.intensity=0},75);
+ muzzleFlash.intensity=9;setTimeout(()=>{muzzleFlash.intensity=0},95);
  if(ammo===0)msg('SIN MUNICIÓN — PULSA R');
 }
 
