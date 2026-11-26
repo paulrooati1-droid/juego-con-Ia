@@ -114,6 +114,7 @@ const muzzleFlash=new THREE.PointLight(0x7dfff0,0,4);muzzleFlash.position.set(0,
 let yaw=0,pitch=-.12,locked=false,playing=false,paused=true,hp=100,ammo=24,kills=0,wave=1,time=0,lastFire=0,reloading=false;const keys={},enemies=[],bullets=[],enemyBullets=[];let dodge=0,dodgeDir=new THREE.Vector3();
 function msg(s){let t=document.getElementById('toast');t.textContent=s;t.style.opacity=1;setTimeout(()=>t.style.opacity=0,1100)}
 function ui(){document.getElementById('hp').textContent=hp;document.getElementById('hpbar').style.width=hp+'%';document.getElementById('kills').textContent=kills;document.getElementById('ammo').textContent=reloading?'...':ammo;document.getElementById('wave').innerHTML=String(wave).padStart(2,'0')+'<small>OLEADA</small>'}
+renderer.domElement.addEventListener('click',()=>{if(playing&&paused){paused=false;msg('CONTINUAR');}});
 function capture(){if(playing&&!paused)renderer.domElement.requestPointerLock?.()}
 renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
 // Cámara tipo Roblox: el botón derecho mantiene la cámara en modo giro.
