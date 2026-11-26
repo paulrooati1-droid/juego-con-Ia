@@ -108,6 +108,40 @@ function slideMove(position,dx,dz,radius){
 const skin=mat(0x9a7059),pants=mat(0x303a35),jacket=mat(0x596653,.08,.88),boots=mat(0x111819,.25,.65),glow=mat(0x8dfff0,.35,.22,0x36bfae),fabric=mat(0x202a29),armorPlayer=mat(0x34413d,.72,.34),rubber=mat(0x171e20,.05,.9),visorPlayer=mat(0x182c30,.65,.2);
 function capsule(parent,material,r,length,x,y,z){let m=new THREE.Mesh(new THREE.CapsuleGeometry(r,length,6,12),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
 function spherePart(parent,material,x,y,z,sx,sy,sz){let m=new THREE.Mesh(new THREE.SphereGeometry(1,16,12),material);m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
+
+// Rostros humanos de estilo cinematográfico: piel, ojos, cejas, nariz, labios,
+// orejas, cabello/barba y pequeñas marcas para que cada combatiente sea único.
+function addHumanFace(parent, skinMaterial, hairMaterial, detailMaterial, variant=0){
+ const face=spherePart(parent,skinMaterial,0,-.035,.155,.166,.205,.105);
+ spherePart(parent,skinMaterial,-.177,-.025,.105,.045,.075,.055);
+ spherePart(parent,skinMaterial,.177,-.025,.105,.045,.075,.055);
+ const eye=mat(0x171817,.12,.24),white=mat(0xc7c4b8,.05,.35),brow=hairMaterial;
+ for(const q of [-1,1]){
+  spherePart(parent,white,q*.071,.018,.247,.044,.027,.018);
+  spherePart(parent,eye,q*.071,.018,.264,.018,.022,.012);
+  spherePart(parent,mat(0x0b0b0a,.05,.2),q*.071,.018,.274,.008,.012,.006);
+  cube(parent,brow,q*.071,.071,.239,.095,.026,.035,0,0,q*-.13);
+ }
+ spherePart(parent,skinMaterial,0,-.045,.268,.035,.068,.04);
+ spherePart(parent,skinMaterial,0,-.095,.247,.055,.025,.028);
+ cube(parent,detailMaterial,0,-.151,.235,.105,.018,.025);
+ for(const q of [-1,1])spherePart(parent,detailMaterial,q*.025,-.146,.251,.018,.008,.008);
+ // Hairline, sideburns and optional stubble/scars.
+ spherePart(parent,hairMaterial,0,.151,.105,.177,.075,.12);
+ cube(parent,hairMaterial,-.145,.055,.145,.045,.17,.09);
+ cube(parent,hairMaterial,.145,.055,.145,.045,.17,.09);
+ if(variant%3!==0){
+  spherePart(parent,hairMaterial,0,-.125,.19,.105,.055,.045);
+  cube(parent,detailMaterial,(variant%2?-.055:.055),.005,.277,.012,.085,.008,0,0,.22);
+ }
+ // Fine cheek marks and forehead crease.
+ for(const q of [-1,1]){
+  cube(parent,detailMaterial,q*.115,-.065,.239,.025,.009,.009,0,0,q*.25);
+  cube(parent,detailMaterial,q*.04,.112,.238,.035,.006,.006,0,0,q*.15);
+ }
+ return face;
+}
+
 const player=new THREE.Group();scene.add(player);const rig=new THREE.Group();player.add(rig);
 // Piernas articuladas, rodilleras, placas tibiales y botas con suela.
 const arms=[],legs=[];
@@ -135,14 +169,13 @@ for(let q of [-1,1]){
 cube(rig,rubber,0,1.48,-.29,.48,.62,.25);cube(rig,armorPlayer,0,1.55,-.43,.36,.37,.12);
 cube(rig,fabric,-.13,1.25,-.43,.16,.22,.12);cube(rig,fabric,.13,1.25,-.43,.16,.22,.12);
 cyl(rig,metal,-.19,1.91,-.35,.025,.025,.42,.08);
-// Cuello, casco compuesto, máscara y visor frontal.
+// Rostro descubierto y casco de combate elevado hacia atrás.
 cyl(rig,skin,0,1.91,0,.13,.13,.18);
 spherePart(rig,skin,0,2.13,.015,.205,.245,.19);
-spherePart(rig,metal,0,2.24,-.005,.25,.18,.23);
-cube(rig,metal,0,2.16,.19,.43,.09,.16);
-cube(rig,visorPlayer,0,2.14,.275,.34,.095,.035);
-cube(rig,glow,0,2.14,.3,.18,.018,.012);
-cube(rig,armorPlayer,0,2.02,.18,.31,.13,.13);
+addHumanFace(rig,skin,mat(0x30251f,.05,.92),mat(0x704638,.05,.8),2);
+spherePart(rig,metal,0,2.315,-.075,.245,.105,.22);
+cube(rig,metal,0,2.255,-.13,.42,.07,.18);
+cube(rig,armorPlayer,0,2.015,.18,.31,.075,.09);
 for(let q of [-1,1]){cube(rig,metal,q*.245,2.2,0,.08,.16,.2);cube(rig,glow,q*.245,2.2,.105,.035,.045,.025)}
 // Brazos con hombreras, antebrazos blindados y guantes.
 for(let q of [-1,1]){
@@ -203,9 +236,15 @@ function makeEnemy(type){
  capsule(torso,cloth,.31,.38,0,0,0);cube(torso,armor,0,.04,.015,.68,.53,.4);
  cube(torso,dark,0,-.05,-.23,.42,.34,.08);cube(torso,armor,0,-.2,.22,.48,.23,.09);
  const head=new THREE.Group();head.position.set(0,.52,.015);torso.add(head);
- let skull=new THREE.Mesh(new THREE.SphereGeometry(.22,16,12),dark);skull.scale.set(1,1.14,.92);head.add(skull);
- if(type==='brute'){cube(head,armor,0,.12,0,.62,.32,.55);cube(head,visor,0,.01,.22,.48,.12,.04)}
- else{cube(head,armor,0,.12,-.02,.42,.12,.4);cube(head,visor,0,-.015,.205,.34,.075,.035);cube(head,dark,0,-.16,.18,.24,.17,.12)}
+ let skull=new THREE.Mesh(new THREE.SphereGeometry(.22,20,16),dark);skull.scale.set(1,1.14,.92);head.add(skull);
+ const faceSkin=mat(type==='brute'?0x876b58:type==='stalker'?0x9a745e:type==='sniper'?0xb58c70:type==='imitator'?0x99715e:0xa77e65,.02,.82);
+ const hair=mat(type==='sniper'?0x4b4a43:type==='imitator'?0x241e1c:type==='stalker'?0x171b18:0x30251f,.02,.95);
+ const scars=mat(type==='imitator'?0x762f29:0x68483b,.02,.9);
+ addHumanFace(head,faceSkin,hair,scars,type==='brute'?2:type==='stalker'?1:type==='sniper'?3:type==='imitator'?4:0);
+ // Protección superior y lateral sin tapar los rasgos faciales.
+ if(type==='brute'){cube(head,armor,0,.205,-.035,.62,.20,.43);cube(head,dark,0,.115,-.13,.48,.055,.16)}
+ else{cube(head,armor,0,.205,-.055,.43,.12,.37);cube(head,dark,0,.115,-.12,.28,.045,.12)}
+ if(type==='sniper')cube(head,dark,0,.27,-.16,.34,.055,.22);
  const backpack=cube(torso,dark,0,.03,-.31,.42,.55,.2);backpack.rotation.x=-.08;
  // Arnés, placas superpuestas, filtros y bolsillos: cada clase tiene una lectura visual propia.
  for(let q of [-1,1]){
