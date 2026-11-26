@@ -167,8 +167,8 @@ function updateEnemies(dt){
   // Golpe visual propio: el bruto levanta los brazos y el acechador se lanza.
   const swing=u.attack>0?Math.sin((u.attack/u.attackDuration)*Math.PI):0;
   u.torso.rotation.x=THREE.MathUtils.damp(u.torso.rotation.x,-swing*(u.type==='brute'?.48:.22),12,dt);
-  u.arms[0].rotation.x+=swing*(u.type==='brute'?-.8:-.42)*dt*8;
-  u.arms[1].rotation.x+=swing*(u.type==='brute'?-.8:-.42)*dt*8;
+  u.arms[0].rotation.x=-Math.sin(u.walk*5+u.phase)*.32-swing*(u.type==='brute'?.8:.42);
+  u.arms[1].rotation.x=Math.sin(u.walk*5+u.phase)*.32-swing*(u.type==='brute'?.8:.42);
   e.lookAt(player.position.x,0,player.position.z);
  }
 }
