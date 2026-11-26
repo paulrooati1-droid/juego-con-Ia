@@ -27,6 +27,19 @@ for(let x=-65;x<=65;x+=26){for(let z of [-58,58]){let w=17,h=17+Math.random()*19
 for(let z=-35;z<=35;z+=25)for(let x of [-72,72])cube(scene,concrete,x,11+Math.random()*7,z,16,22,16);
 for(let i=0;i<180;i++){let x=(Math.random()-.5)*130,z=(Math.random()-.5)*130;if(Math.abs(x)<10&&Math.abs(z)<10)continue;cube(scene,Math.random()>.5?concrete:rust,x,.15,z,.5+Math.random()*1.8,.3,.5+Math.random()*1.4,Math.random(),Math.random()*3,Math.random()*.4)}
 for(let i=0;i<28;i++){let x=(Math.random()-.5)*100,z=(Math.random()-.5)*100;cube(scene,metal,x,.7,z,2.5,1.3,1.2,0,Math.random()*3,0);cube(scene,rust,x,1.5,z,.15,.3,1.5)}
+// Nuevas estructuras: puestos de vigilancia, barricadas, contenedores, coches y pasos elevados.
+function container(x,z,color=0x465653){let m=mat(color,.55,.6);cube(scene,m,x,1.25,z,7,2.5,2.8);for(let k=-3;k<=3;k+=.45)cube(scene,metal,x+k,1.25,z+1.42,.055,2.25,.06);cube(scene,rust,x,2.52,z,7.1,.08,2.9)}
+container(-18,-9,0x465b58);container(19,13,0x59605a);container(28,-22,0x4b5559);
+// Torres de vigilancia con focos y plataformas.
+for(const [x,z] of [[-31,8],[34,4],[-8,34]]){cube(scene,metal,x,4,z,.35,8,.35);cube(scene,metal,x,7.8,z,3.8,.25,3.8);cube(scene,rust,x,9,z,2.8,2.2,2.8);cube(scene,glass,x,9,z+1.42,1.5,.8,.06);for(let y=1;y<7;y+=1.1)cube(scene,rust,x-.45,y,z+.3,.9,.09,.09)}
+// Barricadas antivehículos y sacos de arena.
+for(const [x,z,rot] of [[-10,-18,.2],[11,-27,-.25],[38,22,.7],[-38,-24,-.5]]){cube(scene,metal,x,.7,z,9,1.4,.65,0,rot,0);for(let j=-3;j<=3;j++)cube(scene,sand,x+j*1.15,1.35,z,.95,.8,.8,0,rot,0);for(let j=-3;j<=3;j++)cube(scene,rust,x+j*1.15,2.05,z,.12,.45,.12)}
+// Restos de vehículos blindados.
+for(const [x,z,rot] of [[-25,-3,.4],[24,-8,-.8],[7,25,1.2]]){let car=new THREE.Group();car.position.set(x,0,z);car.rotation.y=rot;scene.add(car);cube(car,metal,0,.85,0,4.8,1.25,2.2);cube(car,rust,0,1.65,-.1,2.7,.75,2);cube(car,glass,0,1.75,.94,2.1,.5,.05);for(const sx of [-1,1])for(const sz of [-.8,.8])cyl(car,metal,sx*1.55,.48,sz, .48,.48,.28,Math.PI/2);cube(car,rust,0,2.15,-1.2,.22,.8,.22)}
+// Tramo de puente derrumbado y pilares de hormigón.
+cube(scene,concrete,-43,5,0,19,1.5,5,0,0,.12);cube(scene,concrete,-49,2,0,1.4,4,1.4);cube(scene,concrete,-37,2,0,1.4,4,1.4);cube(scene,concrete,-39,3.2,3.5,8,.7,1.4,0,0,.35);
+// Farolas rotas y cables colgantes.
+for(const [x,z] of [[-14,5],[15,5],[42,-12],[-44,28]]){cyl(scene,metal,x,3,z,.12,.18,6,.08);cube(scene,rust,x+1.1,5.7,z,.18,.18,2,0,0,.5);cube(scene,glass,x+2,5.5,z,.35,.16,.35)}
 // Scavenger player: layered armor, helmet, glowing visor, pack and rifle
 const player=new THREE.Group();scene.add(player);const rig=new THREE.Group();player.add(rig);
 cube(rig,cloth,0,1.15,0,.72,.95,.42);cube(rig,metal,0,1.48,-.02,.84,.25,.48);cube(rig,rust,0,1.06,.23,.48,.16,.06);
@@ -44,7 +57,19 @@ document.addEventListener('mousemove',e=>{if(!locked)return;yaw-=e.movementX*.00
 document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Escape'&&playing){paused=true;msg('PAUSA — HAZ CLIC PARA CONTINUAR')}if(e.code==='KeyR')reload()});document.addEventListener('keyup',e=>keys[e.code]=false);
 document.addEventListener('mousedown',e=>{if(e.button===0&&locked)fire()});
 function reload(){if(reloading||ammo===24)return;reloading=true;ui();setTimeout(()=>{ammo=24;reloading=false;ui()},1050)}
-function fire(){let now=performance.now();if(now-lastFire<190||ammo<1||reloading)return;lastFire=now;ammo--;ui();let d=new THREE.Vector3();camera.getWorldDirection(d);let b=new THREE.Mesh(new THREE.SphereGeometry(.065,8,8),cyan);b.position.copy(camera.position).addScaledVector(d,.8);scene.add(b);bullets.push({o:b,d,life:1.5})}
+const shotRay=new THREE.Raycaster();
+function fire(){
+ let now=performance.now();if(now-lastFire<190||ammo<1||reloading)return;
+ lastFire=now;ammo--;ui();
+ shotRay.setFromCamera(new THREE.Vector2(0,0),camera);
+ let targets=[];for(const enemy of enemies)targets.push(...enemy.children);
+ let hits=shotRay.intersectObjects(targets,true);let end=shotRay.ray.origin.clone().addScaledVector(shotRay.ray.direction,85);
+ if(hits.length){let hit=hits[0];end.copy(hit.point);let root=hit.object;while(root.parent&&root.parent!==scene)root=root.parent;
+  if(enemies.includes(root)){root.userData.hp-=38;if(root.userData.hp<=0){scene.remove(root);enemies.splice(enemies.indexOf(root),1);kills++;ui()}}
+ }
+ let trace=new THREE.Line(new THREE.BufferGeometry().setFromPoints([camera.position.clone(),end]),new THREE.LineBasicMaterial({color:0x8dfff0,transparent:true,opacity:.9}));scene.add(trace);setTimeout(()=>{scene.remove(trace);trace.geometry.dispose();trace.material.dispose()},75);
+ if(ammo===0)msg('SIN MUNICIÓN — PULSA R');
+}
 function makeEnemy(type){let g=new THREE.Group();scene.add(g);let armor=mat(type==='sniper'?0x536a76:type==='imitator'?0x875044:type==='brute'?0x626b69:0x657767,.65,.45);cube(g,armor,0,1.23,0,.76,.9,.48);cube(g,metal,0,1.55,.03,.9,.2,.54);cyl(g,metal,0,2,0,.26,.3,.4);cube(g,type==='imitator'?red:cyan,0,2,.26,.32,.07,.04);cube(g,rust,0,1.25,-.3,.52,.5,.18);
 for(let s of [-1,1]){cube(g,armor,s*.52,1.3,0,.25,.65,.28,0,0,s*.15);cube(g,metal,s*.2,.42,0,.26,.76,.28,0,0,-s*.05);cube(g,metal,s*.2,.07,.08,.31,.15,.4)}
 for(let s of [-1,1])cube(g,rust,s*.5,1.67,0,.33,.2,.34,0,0,s*.18);
