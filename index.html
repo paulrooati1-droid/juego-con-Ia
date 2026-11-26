@@ -104,19 +104,62 @@ function slideMove(position,dx,dz,radius){
  if(!blockedAt(position.x,nz,radius))position.z=nz;
 }
 
-// SUPERVIVIENTE: cuerpo articulado con proporciones humanas y rifle unido a las manos.
-const skin=mat(0xb98261),pants=mat(0x343b35),jacket=mat(0x626b59),boots=mat(0x171c1b),glow=mat(0x8dfff0,.25,.2,0x36bfae),fabric=mat(0x242d2b);
-function capsule(parent,material,r,length,x,y,z){let m=new THREE.Mesh(new THREE.CapsuleGeometry(r,length,5,10),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
+// SUPERVIVIENTE: soldado de asalto con silueta, equipo y armadura por capas.
+const skin=mat(0x9a7059),pants=mat(0x303a35),jacket=mat(0x596653,.08,.88),boots=mat(0x111819,.25,.65),glow=mat(0x8dfff0,.35,.22,0x36bfae),fabric=mat(0x202a29),armorPlayer=mat(0x34413d,.72,.34),rubber=mat(0x171e20,.05,.9),visorPlayer=mat(0x182c30,.65,.2);
+function capsule(parent,material,r,length,x,y,z){let m=new THREE.Mesh(new THREE.CapsuleGeometry(r,length,6,12),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
+function spherePart(parent,material,x,y,z,sx,sy,sz){let m=new THREE.Mesh(new THREE.SphereGeometry(1,16,12),material);m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
 const player=new THREE.Group();scene.add(player);const rig=new THREE.Group();player.add(rig);
-capsule(rig,pants,.25,.38,0,.88,0);capsule(rig,jacket,.34,.48,0,1.48,0);cube(rig,metal,0,1.55,-.24,.58,.62,.22);
-let neck=cyl(rig,skin,0,1.91,0,.13,.13,.2),head=new THREE.Mesh(new THREE.SphereGeometry(.22,18,14),skin);head.position.set(0,2.13,0);head.castShadow=true;rig.add(head);
-let helmet=new THREE.Mesh(new THREE.SphereGeometry(.245,18,10,0,Math.PI*2,0,Math.PI*.58),metal);helmet.position.set(0,2.2,0);rig.add(helmet);cube(rig,glow,0,2.12,.205,.25,.045,.025);
-cube(rig,fabric,-.25,1.43,-.27,.17,.42,.2);cube(rig,rust,.25,1.53,-.29,.16,.25,.2);
+// Piernas articuladas, rodilleras, placas tibiales y botas con suela.
 const arms=[],legs=[];
-for(let q of [-1,1]){let arm=new THREE.Group();arm.position.set(q*.39,1.7,0);rig.add(arm);capsule(arm,jacket,.14,.34,q*.02,-.22,0);capsule(arm,skin,.105,.24,q*.02,-.51,.015);let glove=new THREE.Mesh(new THREE.SphereGeometry(.115,10,8),boots);glove.position.set(q*.02,-.65,.04);arm.add(glove);arms.push(arm);
-let leg=new THREE.Group();leg.position.set(q*.18,.78,0);rig.add(leg);capsule(leg,pants,.145,.38,0,-.25,0);cube(leg,boots,0,-.56,.09,.3,.17,.43);legs.push(leg)}
-const rifle=new THREE.Group();rifle.position.set(.35,1.42,.26);rig.add(rifle);cube(rifle,metal,0,0,.08,.15,.17,.72);cube(rifle,rust,0,-.13,-.12,.14,.18,.27);cyl(rifle,metal,0,.02,.52,.04,.04,.42);cube(rifle,glow,0,.1,.1,.07,.025,.13);
-const muzzleFlash=new THREE.PointLight(0x7dfff0,0,4);muzzleFlash.position.set(0,.02,.76);rifle.add(muzzleFlash);rig.userData={arms,legs};
+for(let q of [-1,1]){
+ let leg=new THREE.Group();leg.position.set(q*.19,.86,0);rig.add(leg);
+ capsule(leg,pants,.155,.38,0,-.24,0);spherePart(leg,armorPlayer,0,-.48,.045,.16,.13,.17);
+ cube(leg,armorPlayer,0,-.66,.075,.25,.29,.18);cube(leg,rubber,0,-.83,.12,.31,.16,.46);cube(leg,metal,0,-.91,.12,.32,.045,.45);
+ cube(leg,fabric,q*.02,-.24,-.145,.22,.25,.08);legs.push(leg);
+}
+// Cadera, chaleco balístico y placas pectorales.
+capsule(rig,pants,.27,.28,0,1.02,0);
+capsule(rig,jacket,.34,.43,0,1.48,0);
+cube(rig,armorPlayer,0,1.48,.015,.67,.56,.43);
+cube(rig,metal,0,1.54,.24,.48,.31,.075);
+cube(rig,visorPlayer,0,1.61,.285,.29,.13,.035);
+cube(rig,armorPlayer,0,1.22,.245,.55,.18,.1);
+cube(rig,rubber,0,1.13,.26,.59,.12,.12);
+for(let q of [-1,1]){
+ spherePart(rig,armorPlayer,q*.39,1.7,0,.23,.2,.23);
+ cube(rig,metal,q*.39,1.7,.08,.27,.12,.2,0,0,q*.12);
+ cube(rig,fabric,q*.3,1.34,.25,.17,.22,.09);
+ cube(rig,rust,q*.3,1.35,.305,.12,.11,.025);
+}
+// Mochila táctica con compartimentos, correas y antena.
+cube(rig,rubber,0,1.48,-.29,.48,.62,.25);cube(rig,armorPlayer,0,1.55,-.43,.36,.37,.12);
+cube(rig,fabric,-.13,1.25,-.43,.16,.22,.12);cube(rig,fabric,.13,1.25,-.43,.16,.22,.12);
+cyl(rig,metal,-.19,1.91,-.35,.025,.025,.42,.08);
+// Cuello, casco compuesto, máscara y visor frontal.
+cyl(rig,skin,0,1.91,0,.13,.13,.18);
+spherePart(rig,skin,0,2.13,.015,.205,.245,.19);
+spherePart(rig,metal,0,2.24,-.005,.25,.18,.23);
+cube(rig,metal,0,2.16,.19,.43,.09,.16);
+cube(rig,visorPlayer,0,2.14,.275,.34,.095,.035);
+cube(rig,glow,0,2.14,.3,.18,.018,.012);
+cube(rig,armorPlayer,0,2.02,.18,.31,.13,.13);
+for(let q of [-1,1]){cube(rig,metal,q*.245,2.2,0,.08,.16,.2);cube(rig,glow,q*.245,2.2,.105,.035,.045,.025)}
+// Brazos con hombreras, antebrazos blindados y guantes.
+for(let q of [-1,1]){
+ let arm=new THREE.Group();arm.position.set(q*.43,1.7,.02);rig.add(arm);
+ capsule(arm,jacket,.15,.31,0,-.2,0);spherePart(arm,armorPlayer,0,-.22,.015,.17,.2,.18);
+ capsule(arm,rubber,.115,.23,0,-.49,.015);cube(arm,armorPlayer,0,-.48,.1,.2,.24,.12);
+ spherePart(arm,boots,0,-.67,.055,.12,.13,.13);cube(arm,fabric,0,-.35,-.12,.16,.18,.06);
+ arms.push(arm);
+}
+// Rifle de asalto detallado: culata, receptor, guardamanos, mira, cargador y cañón.
+const rifle=new THREE.Group();rifle.position.set(.34,1.42,.28);rig.add(rifle);
+cube(rifle,rubber,0,-.02,-.28,.14,.15,.38);cube(rifle,metal,0,0,.02,.18,.19,.58);
+cube(rifle,armorPlayer,0,.035,.22,.2,.13,.3);cube(rifle,rubber,0,-.18,.04,.14,.27,.18);
+cube(rifle,metal,0,.12,.12,.055,.08,.3);cube(rifle,glow,0,.17,.12,.08,.025,.14);
+cube(rifle,rubber,0,-.01,.48,.1,.11,.2);cyl(rifle,metal,0,.02,.68,.045,.045,.48);
+cyl(rifle,rust,0,.02,.91,.052,.052,.08);
+const muzzleFlash=new THREE.PointLight(0x7dfff0,0,5);muzzleFlash.position.set(0,.02,.95);rifle.add(muzzleFlash);rig.userData={arms,legs};
 
 let yaw=0,pitch=-.12,locked=false,playing=false,paused=true,hp=100,ammo=24,kills=0,wave=1,time=0,lastFire=0,reloading=false;const keys={},enemies=[],bullets=[],enemyBullets=[];let dodge=0,dodgeDir=new THREE.Vector3();
 function msg(s){let t=document.getElementById('toast');t.textContent=s;t.style.opacity=1;setTimeout(()=>t.style.opacity=0,1100)}
@@ -139,9 +182,16 @@ if(hits.length){end.copy(hits[0].point);let root=hits[0].object;while(root.paren
 let start=new THREE.Vector3();rifle.getWorldPosition(start);start.add(new THREE.Vector3(0,.02,.5).applyQuaternion(rifle.getWorldQuaternion(new THREE.Quaternion())));
 let direction=end.clone().sub(start).normalize();
 const beamGeo=new THREE.BufferGeometry().setFromPoints([start.clone(),end.clone()]);const beamMat=new THREE.LineBasicMaterial({color:0xffd28a,transparent:true,opacity:1});const beam=new THREE.Line(beamGeo,beamMat);scene.add(beam);tracers.push({o:beam,life:.12,max:.12});
-let orb=new THREE.Mesh(new THREE.SphereGeometry(.075,10,8),new THREE.MeshBasicMaterial({color:0xffd078}));
-orb.position.copy(start);orb.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);scene.add(orb);
-let tip=new THREE.Mesh(new THREE.SphereGeometry(.045,8,8),new THREE.MeshBasicMaterial({color:0xffb45e}));tip.position.y=.17;orb.add(tip);
+// Proyectil 3D reconocible: vaina metálica, punta incandescente y núcleo luminoso.
+const orb=new THREE.Group();orb.position.copy(start);orb.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);
+const casing=new THREE.Mesh(new THREE.CylinderGeometry(.055,.055,.42,12),new THREE.MeshStandardMaterial({color:0xb8a06d,metalness:.88,roughness:.24,emissive:0x241600}));
+casing.castShadow=true;orb.add(casing);
+const nose=new THREE.Mesh(new THREE.ConeGeometry(.055,.19,12),new THREE.MeshStandardMaterial({color:0xffb34f,metalness:.45,roughness:.2,emissive:0x9b3c08,emissiveIntensity:1.8}));
+nose.position.y=.305;orb.add(nose);
+const core=new THREE.Mesh(new THREE.CylinderGeometry(.027,.027,.48,8),new THREE.MeshBasicMaterial({color:0xffe3a0}));
+core.position.y=.02;orb.add(core);
+const projectileGlow=new THREE.PointLight(0xffa64a,1.4,2.8);projectileGlow.position.y=.1;orb.add(projectileGlow);
+scene.add(orb);
 let distance=start.distanceTo(end);bullets.push({o:orb,d:direction,life:distance/180+.04,travel:0,maxDistance:distance,victim,damage:38,speed:180});muzzleFlash.intensity=5;setTimeout(()=>muzzleFlash.intensity=0,90);if(ammo===0)msg('SIN MUNICIÓN — PULSA R')}
 
 function makeEnemy(type){
