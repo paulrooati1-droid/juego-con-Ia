@@ -16,7 +16,7 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 const scene=new THREE.Scene();scene.background=new THREE.Color(0xa8b5ae);scene.fog=new THREE.FogExp2(0xa8b5ae,.009);
 const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.1,350);
-const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;document.body.appendChild(renderer.domElement);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;document.body.appendChild(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xe7f5ff,0x514338,2.25));const sun=new THREE.DirectionalLight(0xffdfb2,3.4);sun.position.set(-35,60,25);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);scene.add(sun);
 const mat=(c,m=0,r=.8,e=0)=>new THREE.MeshStandardMaterial({color:c,metalness:m,roughness:r,emissive:e});
 const concrete=mat(0x555b57),metal=mat(0x202a2c,.7,.45),rust=mat(0x87482f,.45),glass=mat(0x183c40,.5,.25,0x092323),cyan=mat(0x53dfd4,.5,.3,0x126a63),cloth=mat(0x343e36),red=mat(0xa53d2e,.4,.5,0x320900),sand=mat(0x827967);
@@ -243,7 +243,7 @@ function fire(){
  const orb=makeBulletVisual();orb.position.copy(start);orb.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);scene.add(orb);
  const distance=start.distanceTo(end);
  bullets.push({o:orb,d:direction,life:distance/180+.04,travel:0,maxDistance:distance,victim,damage:38,speed:180});
- muzzleFlash.intensity=5;
+ muzzleFlash.intensity=5;setTimeout(()=>{muzzleFlash.intensity=0},75);
  if(ammo===0)msg('SIN MUNICIÓN — PULSA R');
 }
 
