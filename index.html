@@ -75,8 +75,11 @@ function fire(){let now=performance.now();if(now-lastFire<190||ammo<1||reloading
 let targets=[];for(const enemy of enemies)targets.push(...enemy.children);let hits=shotRay.intersectObjects(targets,true),end=shotRay.ray.origin.clone().addScaledVector(shotRay.ray.direction,85),victim=null;
 if(hits.length){end.copy(hits[0].point);let root=hits[0].object;while(root.parent&&root.parent!==scene)root=root.parent;if(enemies.includes(root))victim=root}
 let start=new THREE.Vector3();rifle.getWorldPosition(start);start.add(new THREE.Vector3(0,.02,.5).applyQuaternion(rifle.getWorldQuaternion(new THREE.Quaternion())));
-let orb=new THREE.Mesh(new THREE.SphereGeometry(.085,12,10),new THREE.MeshBasicMaterial({color:0x9dfff4}));orb.position.copy(start);scene.add(orb);orb.add(new THREE.PointLight(0x66fff0,2.5,3));
-let distance=start.distanceTo(end);bullets.push({o:orb,d:end.clone().sub(start).normalize(),life:Math.min(.42,distance/105),travel:0,maxDistance:distance,victim,damage:38,speed:105});muzzleFlash.intensity=3;setTimeout(()=>muzzleFlash.intensity=0,55);if(ammo===0)msg('SIN MUNICIÓN — PULSA R')}
+let direction=end.clone().sub(start).normalize();
+let orb=new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,.32,8),new THREE.MeshStandardMaterial({color:0xd5b46a,metalness:.8,roughness:.25,emissive:0x3b1c00}));
+orb.position.copy(start);orb.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);scene.add(orb);
+let tip=new THREE.Mesh(new THREE.SphereGeometry(.045,8,8),new THREE.MeshBasicMaterial({color:0xffb45e}));tip.position.y=.17;orb.add(tip);
+let distance=start.distanceTo(end);bullets.push({o:orb,d:direction,life:Math.min(.42,distance/105),travel:0,maxDistance:distance,victim,damage:38,speed:105});muzzleFlash.intensity=3;setTimeout(()=>muzzleFlash.intensity=0,55);if(ammo===0)msg('SIN MUNICIÓN — PULSA R')}
 
 function makeEnemy(type){let g=new THREE.Group();scene.add(g);let colors={raider:0x657767,stalker:0x293d34,sniper:0x536f85,imitator:0x9a493b,brute:0x777d78};let a=mat(colors[type]||0x657767,.65,.42),d=mat(0x171e20,.7,.5),eye=mat(type==='imitator'?0xff382c:type==='sniper'?0xffd36b:0x74fff0,.2,.2,0x8b261d);g.scale.setScalar(type==='brute'?1.35:1);
 if(type==='brute'){cube(g,a,0,1.25,0,1.3,1.3,.8);cube(g,d,0,1.9,0,1,.5,.8);cyl(g,a,0,2.3,0,.4,.4,.5);cube(g,eye,0,2.3,.4,.4,.12,.04);for(let q of [-1,1])cube(g,a,q*.8,1.4,0,.5,1,.6)}
