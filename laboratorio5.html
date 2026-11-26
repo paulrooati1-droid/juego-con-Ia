@@ -1,2 +1,53 @@
 <!doctype html>
-/mnt/data/files/laboratorio5.html
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EVOLVER | Laboratorio 5</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1015;--panel:#141d25;--line:#293844;--muted:#9fb0bb;--text:#eef4f7;--accent:#d8a45d;--green:#9cce9b;--red:#e28a7e}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#1c2b35 0,#0b1015 65%);color:var(--text);font:16px/1.5 Inter,Segoe UI,Arial,sans-serif;min-height:100vh;padding:34px 18px}
+main{max-width:1050px;margin:auto}.top{display:flex;justify-content:space-between;gap:18px;align-items:center;margin-bottom:24px}.brand{letter-spacing:.22em;color:var(--accent);font-size:12px;font-weight:800}.tag{border:1px solid #52616a;border-radius:99px;padding:6px 11px;color:#c4d0d6;font-size:12px}
+h1{font-size:clamp(30px,5vw,48px);line-height:1.03;letter-spacing:-.04em;margin:8px 0}.sub{color:var(--muted);max-width:700px;margin:0 0 24px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.card{background:linear-gradient(145deg,#17232c,#111920);border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:0 14px 42px #0005}.card h2{font-size:17px;margin:0 0 14px}.eyebrow{color:var(--accent);font-weight:800;letter-spacing:.13em;font-size:10px;text-transform:uppercase;margin-bottom:6px}.field{display:block;color:#c6d3d9;font-size:13px;font-weight:650;margin:0 0 8px}select{width:100%;background:#0c141a;color:var(--text);border:1px solid #40515d;border-radius:9px;padding:13px;font-size:15px;outline:none}select:focus{border-color:var(--accent)}.hint{color:var(--muted);font-size:12px;margin:10px 0 0}.btn{background:var(--accent);border:0;border-radius:9px;color:#1b1711;font-weight:850;padding:12px 18px;cursor:pointer;margin-top:16px}.btn:hover{filter:brightness(1.08)}.result{border-left:3px solid var(--green);padding:8px 0 8px 14px}.result h3{font-size:22px;line-height:1.2;margin:4px 0 10px}.muted{color:var(--muted)}.why{margin-top:15px;color:#c9d5db}.limit{margin-top:16px;border-top:1px solid var(--line);padding-top:14px;color:#c9d5db;font-size:14px}.alert{background:#3a211e;border:1px solid #79433d;color:#ffd0c9;border-radius:10px;padding:12px;margin-top:14px;display:none}.saved{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}.case{background:#0c151b;border:1px solid #2b3a44;border-radius:10px;padding:12px;font-size:13px}.case b{display:block;color:var(--accent);margin-bottom:4px}.footer{color:#81919b;font-size:12px;margin-top:22px;text-align:center}.span2{grid-column:span 2}
+@media(max-width:720px){.grid{grid-template-columns:1fr}.span2{grid-column:auto}.saved{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body><main>
+<div class="top"><div class="brand">EVOLVER / SISTEMA TÁCTICO</div><div class="tag">PROTOTIPO DE PRUEBA · LABORATORIO 5</div></div>
+<h1>Analizador de combate</h1><p class="sub">El oponente observa el patrón principal del jugador y propone una respuesta táctica. La sugerencia sirve como apoyo: la persona que juega conserva la decisión final.</p>
+<div class="grid">
+<section class="card">
+<div class="eyebrow">01 / Entrada</div><h2>¿Qué estilo repite el jugador?</h2>
+<label class="field" for="style">Patrón de combate observado</label>
+<select id="style"><option value="">Selecciona un patrón...</option><option value="distancia">Ataca principalmente desde lejos</option><option value="cuerpo">Busca el combate cuerpo a cuerpo</option><option value="esquiva">Esquiva con frecuencia antes de atacar</option></select>
+<p class="hint">Usa datos ficticios de una partida de prueba. No se guarda información personal.</p>
+<button class="btn" id="analyze">Analizar patrón</button><div class="alert" id="alert" role="alert">Entrada inválida: selecciona un patrón de combate antes de analizar. No se generó ninguna sugerencia.</div>
+</section>
+<section class="card" id="output" aria-live="polite">
+<div class="eyebrow">02 / Sugerencia</div><h2>Respuesta del oponente</h2>
+<div class="result"><div class="muted" id="status">Esperando una entrada válida</div><h3 id="suggestion">Aún no hay una táctica sugerida</h3><div class="why" id="why">Elige un patrón y pulsa «Analizar patrón».</div></div>
+<div class="limit"><b>Límite:</b> <span id="limit">La aplicación no conoce el mapa, la distancia exacta ni los recursos disponibles; solo considera el patrón seleccionado.</span><br><br><b>Quién decide:</b> la persona que juega. Puede aceptar, ignorar o cambiar la táctica propuesta.</div>
+</section>
+<section class="card span2">
+<div class="eyebrow">03 / Pruebas guardadas</div><h2>Resultados esperados para repetir</h2>
+<div class="saved">
+<div class="case"><b>Prueba A · Distancia</b>Entrada: ataques desde lejos.<br>Esperado: avanzar usando cobertura y flanquear.</div>
+<div class="case"><b>Prueba B · Cuerpo a cuerpo</b>Entrada: busca combate cercano.<br>Esperado: mantener distancia y atacar desde lejos.</div>
+<div class="case"><b>Prueba C · Esquiva</b>Entrada: esquiva antes de atacar.<br>Esperado: esperar el final de la esquiva y atacar.</div>
+</div>
+</section>
+</div>
+<div class="footer">Versión de laboratorio · reglas sencillas de oponente de juego · todos los datos son inventados</div>
+</main>
+<script>
+const rules={
+ distancia:{title:'Avanzar con cobertura y flanquear',why:'El patrón seleccionado indica ataques desde lejos. El oponente intenta reducir la distancia y aproximarse desde un costado, en lugar de cruzar el espacio descubierto.'},
+ cuerpo:{title:'Mantener distancia y atacar desde lejos',why:'El patrón seleccionado indica que el jugador busca el combate cercano. El oponente intenta evitar el contacto directo y aprovechar el alcance.'},
+ esquiva:{title:'Esperar el final de la esquiva y atacar',why:'El patrón seleccionado indica esquivas frecuentes. El oponente espera a que termine ese movimiento para aprovechar la breve pausa antes del siguiente ataque.'}
+};
+const style=document.getElementById('style'),alertBox=document.getElementById('alert');
+document.getElementById('analyze').addEventListener('click',()=>{
+ const key=style.value;
+ if(!rules[key]){alertBox.style.display='block';document.getElementById('status').textContent='Entrada rechazada';document.getElementById('suggestion').textContent='No hay sugerencia';document.getElementById('why').textContent='La entrada está vacía o no corresponde a un patrón permitido.';return;}
+ alertBox.style.display='none';const r=rules[key];document.getElementById('status').textContent='Patrón reconocido: '+style.options[style.selectedIndex].text;document.getElementById('suggestion').textContent=r.title;document.getElementById('why').textContent='Por qué: '+r.why;
+});
+</script></body></html>
